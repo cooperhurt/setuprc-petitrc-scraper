@@ -80,14 +80,22 @@ def parse_args():
     p.add_argument(
         "--max-tracks",
         type=int,
-        default=200,
+        default=10000,
         help="Limit number of tracks to import (useful for testing). Set 0 or negative for no limit.",
+    )
+    p.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging output",
     )
     return p.parse_args()
 
 
 def main():
     args = parse_args()
+    if getattr(args, "debug", False):
+        logging.getLogger().setLevel(logging.DEBUG)
+        logger.debug("Debug logging enabled")
     logger.info("Starting local run with track_id=%s base_url=%s max_pages=%s max_tracks=%s",
                 args.track_id, args.base_url, args.max_pages, args.max_tracks)
     # if user passes 0 or negative, treat as no limit -> None

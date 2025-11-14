@@ -35,21 +35,33 @@ def lambda_handler(event, context):
         return {"status": "error", "message": f"scrape_tracks failed: {e}"}
 
     enriched = []
-    for t in tracks:
+    total = len(tracks)
+    imported_count = 0
+    # process tracks with running tally
+    for idx, t in enumerate(tracks, start=1):
         link = t.get("link")
+        logger.info("Processing track %d/%d: %s -> %s", idx, total, t.get("name"), link)
         try:
             details = scrape_track_details(link)
+            # consider a successful import if we found at least a name or address or phone/website/email
+            ok = bool(details and (details.get("name") or details.get("address") or details.get("phone") or details.get("website") or details.get("email")))
+            if ok:
+                imported_count += 1
         except Exception:
             logger.exception("Failed to fetch details for %s", link)
             details = {}
         merged = {"list_name": t.get("name"), "list_snippet": t.get("snippet"), "link": link, "details": details}
         enriched.append(merged)
 
+        # log running tally
+        logger.info("Import progress: %d imported / %d processed / %d total", imported_count, idx, total)
+
     result = {
         "track_id": track_id,
         "base_url": base_url,
         "scraped_at": start_ts,
         "tracks_count": len(enriched),
+        "imported_count": imported_count,
         "tracks": enriched,
     }
 
